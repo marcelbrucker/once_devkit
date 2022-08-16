@@ -182,6 +182,9 @@ def rotate_iou_cpu_eval(gt_boxes, pred_boxes):
             data_list.append((gt_box, pred_box))
     with Pool(8) as pool:
         result = pool.map(rotate_iou_cpu_one, data_list)
+    # result = []
+    # for item in data_list:
+    #     result.append(rotate_iou_cpu_one(item))
     return np.array(result).reshape((gt_num, -1))
 
 
