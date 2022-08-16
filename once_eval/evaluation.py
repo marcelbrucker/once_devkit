@@ -442,12 +442,17 @@ def compute_iou3d_cpu(gt_annos, pred_annos):
 
 if __name__ == '__main__':
     import pickle
-    info_data = pickle.load(open('once_infos_val.pkl', 'rb')) # you can find this file in once_devkit/submission_format/
-    pred_data = pickle.load(open('result.pkl', 'rb')) # your prediction file
+    import os
+    info_data = pickle.load(open(os.path.normpath(os.path.join(__file__, '../../submission_format/once_infos_val.pkl')), 'rb'))[:3] # you can find this file in once_devkit/submission_format/
+    # pred_data = pickle.load(open('result.pkl', 'rb')) # your prediction file
     gt_data = list()
     for item in info_data:
         if 'annos' in item:
             gt_data.append(item['annos'])
+    pred_data = gt_data
+    for item in pred_data:
+        n_obj = len(item['name'])
+        item['score'] = np.full(n_obj, 1)
     classes = ['Car', 'Bus', 'Truck', 'Pedestrian', 'Cyclist']
-    result_str, result_dict = get_evaluation_results(gt_data, pred_data, ['Car', 'Bus', 'Truck', 'Pedestrian', 'Cyclist'], True)
+    result_str, result_dict = get_evaluation_results(gt_data, pred_data, ['Car', 'Bus', 'Truck', 'Pedestrian', 'Cyclist'], use_superclass=False, difficulty_mode='Overall')
     print(result_str)
