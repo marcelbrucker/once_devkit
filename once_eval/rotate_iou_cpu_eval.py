@@ -4,6 +4,8 @@
 import numpy as np
 from multiprocessing import Pool
 from scipy.spatial import ConvexHull
+from pytorch3d.ops import box3d_overlap
+import torch
 
 
 def polygon_clip(subjectPolygon, clipPolygon):
@@ -161,8 +163,15 @@ def rotate_iou_cpu_one(box_info):
 
     corners_3d_ground = get_3d_box(gt_box[3:6], gt_box[-1], gt_box[[0, 2, 1]])
     corners_3d_predict = get_3d_box(pred_box[3:6], pred_box[-1], pred_box[[0, 2, 1]])
-    iou_3d, _ = box3d_iou(corners_3d_ground, corners_3d_predict)
-    return iou_3d
+    # Sanity checks with ground truth revealed instability of this
+    # method, so replaced by new method from Facebook
+    # iou_3d, _ = box3d_iou(corners_3d_ground, corners_3d_predict)
+    # Preparation for Facebook method https://pytorch3d.org/docs/iou3d
+    corners_3d_ground = torch.from_numpy(np.expand_dims(corners_3d_ground, axis=0).astype(np.float32))
+    corners_3d_predict = torch.from_numpy(np.expand_dims(corners_3d_predict, axis=0).astype(np.float32))
+    _, iou_3d_pytorch3d = box3d_overlap(corners_3d_ground, corners_3d_predict)
+    iou_3d_pytorch3d = iou_3d_pytorch3d.numpy().item()
+    return iou_3d_pytorch3d
 
 
 def rotate_iou_cpu_eval(gt_boxes, pred_boxes):
@@ -182,6 +191,7 @@ def rotate_iou_cpu_eval(gt_boxes, pred_boxes):
             data_list.append((gt_box, pred_box))
     with Pool(8) as pool:
         result = pool.map(rotate_iou_cpu_one, data_list)
+    # For Debugging: same result but no multithread
     # result = []
     # for item in data_list:
     #     result.append(rotate_iou_cpu_one(item))
